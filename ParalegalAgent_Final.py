@@ -33,7 +33,7 @@ class ParalegalState(BaseModel):
     reason_judgment: str | None      = None
     precedents: list[dict]           = []
     precedents_reasonings: list[str] = []
-    n_target: int                    = 1
+    n_target: int                    = 2
 
 # ————— Node: search (compress + API call) —————
 def search_node(state: ParalegalState):
@@ -153,7 +153,7 @@ Scenario: {state.scenario}
 Issue: {cs['Issue']}
 CaseReasoning: {cs['CaseReasoning']}
 
-Question: Is this case relevant? Answer "relevant" or "irrelevant" and give one sentence of reasoning.
+Question: Is this case relevant? Answer "relevant" or "irrelevant" and give one sentence of reasoning. Use layman's terms.
 """
     state.current_reasoning = llm.invoke(prompt).content.strip()
     return state
@@ -177,7 +177,7 @@ Current reasoning: {state.current_reasoning}
 Previous reasonings:
 {prev}
 
-Question: Is the current reasoning redundant or incorrect? Answer "keep" or "reject" and give one sentence explanation.
+Question: Is the current reasoning redundant or incorrect? Answer "keep" or "reject" and give one sentence explanation. Apply reasoning to scenario and see if it applies. Additionally, focus on whether it is specific enough to be used as a precedent.
 """
     state.reason_judgment = llm.invoke(prompt).content.strip()
     return state
@@ -226,9 +226,9 @@ graph.add_conditional_edges(
 
 compiled = graph.compile()
 result   = compiled.invoke({
-    "scenario": "Man sues another man for destruction of shared property. Other man promises to pay, but doesn't",
-    "n_target": 1
-})
+    "scenario": "Driver gets rear-ended in accident. Payment is declined. ",
+    "n_target": 2,
+},{"recursion_limit": 50})
 
 # ————— Print the selected precedent —————
 prec = result["precedents"][0]
@@ -236,5 +236,12 @@ print(f"\nCase: {prec['name']} ({prec['cite']}, {prec['date']})")
 print(f"Issue: {prec['Issue']}")
 print(f"Court's Reasoning: {prec['CaseReasoning']}")
 print(f"Relevance Explanation: {prec['Relevance']}")
+
+prec2 = result["precedents"][1]
+print(f"\nCase: {prec2['name']} ({prec2['cite']}, {prec2['date']})")
+print(f"Issue: {prec2['Issue']}")
+print(f"Court's Reasoning: {prec2['CaseReasoning']}")
+print(f"Relevance Explanation: {prec2['Relevance']}")
+
 
 
