@@ -1,0 +1,42 @@
+openai_key = os.getenv("OPENAI_API_KEY")
+langchain_key = os.getenv("LANGCHAIN_API_KEY")
+courtlistener_key = os.getenv("COURTLISTENER_API_KEY")
+
+print("OPENAI_API_KEY loaded:", bool(openai_key))
+print("LANGCHAIN_API_KEY loaded:", bool(langchain_key))
+print("COURTLISTENER_API_KEY loaded:", bool(courtlistener_key))
+
+os.environ.setdefault("LANGCHAIN_TRACING_V2", "true")
+os.environ.setdefault("LANGCHAIN_PROJECT", "default")
+os.environ.setdefault("USER_AGENT", "legal_agent")
+
+# FETCH CASES
+def fetch_cl_cases(query, size = 5, verbose = True):
+
+    url = "https://www.courtlistener.com/api/rest/v4/opinions/"
+    headers = {"Authorization": f"Token {courtlistener_key}"}
+
+    for search_param in ("search", "q"):
+        params = {search_param: query, "page_size": size, "plain_text": 1}
+        try:
+            resp = requests.get(url, params = params, headers = headers, timeout = 20)
+            resp.raise_for_status()
+        except Exception as exc:
+            if verbose:
+                print(f"Request with param '{search_param}' failed: {exc}")
+            continue
+
+        data = resp.json()
+        results = data.get("results", [])
+        if results:
+            texts = []
+            for item in results:
+                text = item.get("plain_text") or item.get("html_with_citations") or ""
+                if text:
+                    texts.append(text)
+            if texts:
+                return texts
+        if verbose:
+            print(f"No results using param '{search_param}'.")
+
+    return []
